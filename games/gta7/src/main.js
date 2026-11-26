@@ -36,6 +36,7 @@ import { readInput } from './ui/input.js';
 import { buildMenu, checkRotate } from './ui/menu.js';
 import { drawMapBase, drawMinimap } from './ui/minimap.js';
 import { initBigMap } from './ui/bigmap.js';
+import { net, remotes, updateOnline } from './net/online.js';
 
 // =====================================================
 //  1) DÉMARRAGE
@@ -76,8 +77,8 @@ function unlockOnce() {
 }
 for (const ev of UNLOCK_EVENTS) window.addEventListener(ev, unlockOnce);
 
-// Pour bidouiller dans la console (F12) : TURBO.player.speed, TURBO.hero.hp = 999, TURBO.wanted.stars ...
-window.TURBO = { G, player, hero, traffic, wanted, planes };
+// Pour bidouiller dans la console (F12) : TURBO.player.speed, TURBO.hero.hp = 999, TURBO.wanted.stars, TURBO.net ...
+window.TURBO = { G, player, hero, traffic, wanted, planes, net, remotes };
 
 // =====================================================
 //  2) GRAPHISMES HD (chargés en ligne, en arrière-plan)
@@ -242,6 +243,8 @@ function frame() {
   const dt = Math.min(G.clock.getDelta(), 0.05); // jamais plus de 1/20 s (onglet en arrière-plan…)
   const t = G.clock.elapsedTime;
   try { update(dt, t); } catch (e) { report(e); }
+  // en ligne : on envoie notre position et on bouge les autres joueurs (même en pause / au menu)
+  try { updateOnline(dt); } catch (e) { report(e); }
   // le soleil (et donc les ombres) suit le joueur, le ciel suit la caméra
   const f = G.mode === 'plane' ? hero.pos : focusPos();
   sun.position.set(f.x + sunOffset.x, sunOffset.y, f.z + sunOffset.z);

@@ -11,7 +11,7 @@ Active **GitHub Pages** (Settings → Pages → Branch `main` / root) puis va su
 | Jeu | Catégorie |
 |---|---|
 | Forest Rally Drift 3D (👥 multijoueur en ligne par code, via [PeerJS](https://peerjs.com/)) | Course |
-| GTA7 | Monde ouvert |
+| GTA7 (👥 multijoueur en ligne par code, via [PeerJS](https://peerjs.com/)) | Monde ouvert |
 | La Chasse des Paysans 3D | Action |
 
 ## 🧮 Onglet NumWorks — crédits

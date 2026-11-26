@@ -1,0 +1,35 @@
+/* =====================================================
+   MODE EN LIGNE (menu principal + panneau du HUD)
+   ===================================================== */
+#onlineBox { display: flex; flex-direction: column; gap: 8px; margin: 4px 0 12px; }
+#onlineBox .onlineHelp { font-size: 13px; opacity: 0.75; margin: 0; }
+#onlineBox .onlineRow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+#onlineBox input {
+  font: 700 15px 'Exo 2', 'Segoe UI', sans-serif;
+  padding: 9px 12px; border-radius: 10px; min-width: 0;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(5, 8, 20, 0.6); color: #fff; outline: none;
+}
+#onlineBox input:focus { border-color: #4fc3ff; }
+#onlineBox input:disabled { opacity: 0.6; }
+#netName { flex: 1 1 180px; }
+#netCode { width: 120px; text-transform: uppercase; letter-spacing: 4px; text-align: center; }
+#onlineBox button {
+  font: 800 14px 'Exo 2', 'Segoe UI', sans-serif;
+  width: auto; margin: 0; padding: 9px 14px; border: 0; border-radius: 10px; cursor: pointer;
+  background: linear-gradient(90deg, #4fc3ff, #3ddc84); color: #05081a;
+}
+#onlineBox button.secondary { background: rgba(255, 255, 255, 0.12); color: #fff; }
+#onlineBox button:disabled { opacity: 0.5; cursor: default; }
+#netCodeShow {
+  font: 900 26px 'Exo 2', 'Segoe UI', sans-serif; letter-spacing: 6px; color: #ffd23a;
+  padding: 2px 14px; border-radius: 10px; background: rgba(5, 8, 20, 0.6);
+}
+#netStatus { font-size: 13px; opacity: 0.85; min-height: 1em; }
+#netStatus.error { color: #ff6a5c; opacity: 1; }
+#netPlayers { display: flex; flex-wrap: wrap; gap: 6px; }
+#netPlayers .chip {
+  font: 700 13px 'Exo 2', 'Segoe UI', sans-serif;
+  padding: 4px 10px; border-radius: 999px; border: 2px solid; background: rgba(5, 8, 20, 0.55);
+}
+#onlineBox .hidden, #netHud.hidden { display: none !important; }

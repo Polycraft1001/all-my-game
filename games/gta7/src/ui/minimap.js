@@ -9,6 +9,7 @@ import { traffic } from '../vehicles/traffic.js';
 import { player } from '../vehicles/driving.js';
 import { whereAmI } from '../gameplay/where.js';
 import { mission, MISSION_START } from '../gameplay/mission.js';
+import { remotes } from '../net/online.js';
 
 const MAP_R = HALF + 80, MAP_PX = 700, MS = MAP_PX / (2 * MAP_R);
 const base = document.createElement('canvas');
@@ -120,6 +121,16 @@ export function drawMinimap() {
     mm.fillStyle = col; mm.fillRect(u - 4.5, v - 4.5, 9, 9);
     mm.shadowBlur = 0;
     mm.strokeStyle = '#fff'; mm.lineWidth = 1.5; mm.strokeRect(u - 4.5, v - 4.5, 9, 9);
+  }
+  // les autres joueurs (en ligne) : un rond de leur couleur, toujours visible au bord
+  for (const r of remotes.values()) {
+    if (!r.seen || !r.active) continue;
+    const [u, v] = edge(r.x, r.z);
+    mm.shadowColor = r.tint; mm.shadowBlur = 8;
+    mm.fillStyle = r.tint;
+    mm.beginPath(); mm.arc(u, v, 5, 0, Math.PI * 2); mm.fill();
+    mm.shadowBlur = 0;
+    mm.strokeStyle = '#fff'; mm.lineWidth = 1.5; mm.stroke();
   }
   // mission
   if (!mission.active) { const [u, v] = edge(MISSION_START.x, MISSION_START.z); pin(u, v, '#ffd23a', true); }
