@@ -2,6 +2,8 @@
 //  CONDUITE de la voiture du joueur : physique, drift,
 //  turbo, sauts, collisions, dégâts et explosion
 //  (le monde est infini : plus de bord, routes partout)
+//  Sol = floorY (world/city.js) : relief des collines,
+//  trottoirs (+0,24 m) et tremplins
 // =====================================================
 import * as THREE from 'three';
 import { scene } from '../render/engine.js';
@@ -9,7 +11,7 @@ import { G } from '../core/ctx.js';
 import { save, persist } from '../core/save.js';
 import { CARS, COLORS, ASSIST, LEVEL_COLORS, TURBO_TIME, TIME_SET } from '../core/config.js';
 import { clamp, lerp, damp, angleDiff } from '../core/utils.js';
-import { CELL, LANE, rc, SPAWN, colliders, ponds, groundHeight } from '../world/city.js';
+import { CELL, LANE, rc, SPAWN, colliders, ponds, floorY } from '../world/city.js';
 import { buildCar, buildFerrari, hasFerrari, charMesh } from './models.js';
 import { traffic, damageTraffic } from './traffic.js';
 import { emit, burst, smoke, addMark } from '../fx/particles.js';
@@ -60,10 +62,11 @@ export function nearestRoad(x, z) {
   return { x, z: rz + LANE, h: -Math.PI / 2 };
 }
 
+// pose la voiture SUR le sol (avant : à y = 0, donc coincée sous les collines)
 export function placeCar(p) {
   player.pos.set(p.x, 0, p.z);
   player.vh = p.h; player.h = p.h; player.slip = 0; player.speed = 0; player.steer = 0;
-  player.y = 0; player.vy = 0; player.grounded = true; player.air = 0;
+  player.y = floorY(p.x, p.z); player.vy = 0; player.grounded = true; player.air = 0;
   D.drifting = false; D.points = 0; D.level = 0;
   drive.turboTime = 0;
   if (G.mode === 'car') G.camHeading = p.h;
@@ -254,7 +257,7 @@ export function updatePlayer(dt, inp) {
       D.time += dt;
       D.points += player.speed * dt * (0.6 + Math.abs(player.slip)) * D.mult * A.pts * 1.5;
       const lvl = A.th.filter((t) => D.time >= t).length;
-      if (lvl > D.level) { D.level = lvl; burst(p.x, 0.5, p.z, LEVEL_COLORS[lvl], 18, 9); }
+      if (lvl > D.level) { D.level = lvl; burst(p.x, player.y + 0.5, p.z, LEVEL_COLORS[lvl], 18, 9); }
     } else {
       if (inp.up) {
         if (player.speed < 0) player.speed += 30 * dt;
@@ -282,12 +285,12 @@ export function updatePlayer(dt, inp) {
   p.x += fx * player.speed * dt;
   p.z += fz * player.speed * dt;
 
-  // sol, tremplins et sauts
-  const g = groundHeight(p.x, p.z);
+  // sol (relief + trottoirs), tremplins et sauts
+  const g = floorY(p.x, p.z);
   if (player.grounded) {
     if (g - player.y > 1.0) {
       p.x = ox; p.z = oz;
-      if (Math.abs(player.speed) > 8) { G.shake = 0.5; burst(p.x + fx * 2, 1, p.z + fz * 2, '#ffcc55', 12, 8); if (D.drifting) crashDrift(); damageCar(5); }
+      if (Math.abs(player.speed) > 8) { G.shake = 0.5; burst(p.x + fx * 2, player.y + 1, p.z + fz * 2, '#ffcc55', 12, 8); if (D.drifting) crashDrift(); damageCar(5); }
       player.speed *= -0.25;
     } else if (g < player.y - 0.35) {
       player.grounded = false; player.air = 0;
@@ -309,7 +312,7 @@ export function updatePlayer(dt, inp) {
         showMessage('SAUT ! +' + pts + ' pts', '#7df9ff', 1.4);
       }
       G.shake = Math.max(G.shake, Math.min(0.8, -player.vy * 0.03));
-      for (let i = 0; i < 10; i++) emit(p.x, 0.4, p.z, (Math.random() - 0.5) * 10, 1, (Math.random() - 0.5) * 10, '#cccccc', 1.2, 0.8, 2, false, 0.5);
+      for (let i = 0; i < 10; i++) emit(p.x, player.y + 0.4, p.z, (Math.random() - 0.5) * 10, 1, (Math.random() - 0.5) * 10, '#cccccc', 1.2, 0.8, 2, false, 0.5);
       player.vy = 0;
     }
   }
@@ -319,13 +322,13 @@ export function updatePlayer(dt, inp) {
   if (!D.drifting && D.combo > 0) { D.combo -= dt; if (D.combo <= 0) D.mult = 1; }
   if (D.show > 0) D.show -= dt;
 
-  // effets : fumée, traces, flammes du turbo
+  // effets : fumée, traces, flammes du turbo (à la hauteur de la voiture, collines comprises)
   const S = car.S;
   if (D.drifting && player.grounded) {
     const rear = [localToWorld(-(S.W / 2 - 0.12), S.L / 2 - 0.85), localToWorld(S.W / 2 - 0.12, S.L / 2 - 0.85)];
     rear.forEach((w, k) => {
-      if (Math.random() < 0.6) emit(w.x, 0.4, w.z, (Math.random() - 0.5) * 2, 1 + Math.random(), (Math.random() - 0.5) * 2, G.time === TIME_SET.night ? '#8890a0' : '#e8e8e8', 1, 1.1, 3.2, false, 0.45);
-      if (D.level > 0 && Math.random() < 0.5) emit(w.x, 0.3, w.z, (Math.random() - 0.5) * 4, Math.random() * 3, (Math.random() - 0.5) * 4, LEVEL_COLORS[D.level], 0.35, 0.35, -0.3, true, 1);
+      if (Math.random() < 0.6) emit(w.x, player.y + 0.4, w.z, (Math.random() - 0.5) * 2, 1 + Math.random(), (Math.random() - 0.5) * 2, G.time === TIME_SET.night ? '#8890a0' : '#e8e8e8', 1, 1.1, 3.2, false, 0.45);
+      if (D.level > 0 && Math.random() < 0.5) emit(w.x, player.y + 0.3, w.z, (Math.random() - 0.5) * 4, Math.random() * 3, (Math.random() - 0.5) * 4, LEVEL_COLORS[D.level], 0.35, 0.35, -0.3, true, 1);
       if (lastMarks[k]) addMark(lastMarks[k], w, player.y);
       lastMarks[k] = w;
     });
@@ -334,7 +337,7 @@ export function updatePlayer(dt, inp) {
     const ex = localToWorld(0.45, S.L / 2 + 0.3);
     emit(ex.x, player.y + 0.5, ex.z, fx * -6, 0.5, fz * -6, LEVEL_COLORS[drive.turboLevel], 0.6, 0.25, 1.5, true, 0.9);
   }
-  if (inWater && Math.abs(player.speed) > 5 && Math.random() < 0.5) emit(p.x, 0.5, p.z, (Math.random() - 0.5) * 6, 4, (Math.random() - 0.5) * 6, '#9fd0ff', 0.8, 0.6, 1, false, 0.7);
+  if (inWater && Math.abs(player.speed) > 5 && Math.random() < 0.5) emit(p.x, player.y + 0.5, p.z, (Math.random() - 0.5) * 6, 4, (Math.random() - 0.5) * 6, '#9fd0ff', 0.8, 0.6, 1, false, 0.7);
 
   // voiture abîmée : fumée, puis feu, puis BOUM
   if (player.wrecked) {

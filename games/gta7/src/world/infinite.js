@@ -16,6 +16,7 @@
 //  ⚡ Pour aller vite : chaque carré = quelques gros objets
 //  (toutes les façades d'un même type sont fusionnées) et les
 //  carrés trop loin sont cachés.
+//  🌫️ Le brouillard (FOG_MAX) cache le bout des carrés chargés.
 //  🖼️ Asphalte photo : Poly Haven « asphalt_02 » (CC0)
 // =====================================================
 import * as THREE from 'three';
@@ -37,7 +38,9 @@ const SIDE = 0.24;                     // hauteur des trottoirs
 const STEP = 10;                       // le sol épouse le relief tous les 10 m
 const SHOP_P = 0.25;                   // chance qu'un pâté commerçant ait une vraie boutique
 const SHOP_VIEW = isMobile ? 120 : 200; // cercles + icônes des boutiques visibles jusqu'à… (m)
-const FOG_MAX = (RADIUS + 0.5) * SIZE; // brouillard max : cache le bout de la ville chargée
+// brouillard max : cache le bout de la ville chargée (400 m sur téléphone, 720 m sur PC)
+// (le bord des carrés chargés peut être à RADIUS × 320 m seulement : avec + 0,5 on le voyait)
+const FOG_MAX = (RADIUS + 0.25) * SIZE;
 const isCentral = (i, j) => i >= 0 && i < N && j >= 0 && j < N;
 
 // ----- Hasard « fixe » (toujours le même pour une position) -----

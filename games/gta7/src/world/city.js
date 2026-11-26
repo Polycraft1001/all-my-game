@@ -12,6 +12,7 @@
 //  + 3 AUTRES VILLES plus loin (voir world/towns.js)
 //  ➜ Les arbres et lampadaires du centre sont des "props"
 //    qu'on peut renverser (voir fx/destruction.js)
+//  📏 Hauteur du sol (relief, tremplins, trottoirs) : tout en bas
 // =====================================================
 import * as THREE from 'three';
 import { scene, envMats, getEnvMap } from '../render/engine.js';
@@ -539,9 +540,13 @@ export function buildCity() {
 }
 
 // ----- Hauteur du sol -----
-// relief + tremplins (pour les voitures)
-export function groundHeight(x, z) {
-  let h = terrainHeight(x, z);
+// 3 niveaux, du plus simple au plus complet :
+//  terrainHeight(x, z) : le relief seul (collines, world/terrain.js)
+//  groundHeight(x, z)  : relief + tremplins
+//  floorY(x, z)        : relief + tremplins + trottoirs (0,24 m AU-DESSUS du relief)
+// ➜ Tout ce qui roule ou marche (voiture, héros, voitures garées, caméra) utilise floorY.
+// ➜ Le monde est infini : ne JAMAIS bloquer une position avec HALF ou LIMIT.
+function withRamps(x, z, h) {
   for (const r of ramps) {
     const dx = x - r.x, dz = z - r.z;
     if (Math.abs(dx) > r.R || Math.abs(dz) > r.R) continue;
@@ -549,6 +554,10 @@ export function groundHeight(x, z) {
     if (Math.abs(lx) < r.W / 2 && Math.abs(lz) < r.L / 2) h = Math.max(h, r.H * (r.L / 2 - lz) / r.L);
   }
   return h;
+}
+// relief + tremplins
+export function groundHeight(x, z) {
+  return withRamps(x, z, terrainHeight(x, z));
 }
 // y a-t-il un pâté de maisons dans la case (i, j) ? (la grille continue à l'infini)
 // non : sur l'aéroport, les autres villes et leurs routes
@@ -564,7 +573,9 @@ export function onBlock(x, z) {
   if (u - i * CELL >= BLOCK || v - j * CELL >= BLOCK) return false;
   return cellBuilt(i, j);
 }
-// hauteur du sol pour le héros à pied (trottoirs + tremplins + relief)
+// hauteur du sol pour tout ce qui roule ou marche (trottoirs + tremplins + relief)
+// (le trottoir suit les collines : relief + 0,24 m, et pas « au moins 0,24 m »)
 export function floorY(x, z) {
-  return Math.max(onBlock(x, z) ? 0.24 : 0, groundHeight(x, z));
+  const t = terrainHeight(x, z);
+  return withRamps(x, z, onBlock(x, z) ? t + 0.24 : t);
 }

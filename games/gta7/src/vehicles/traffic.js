@@ -2,13 +2,15 @@
 //  CIRCULATION : voitures qui roulent, s'arrêtent,
 //  prennent des dégâts, brûlent et explosent
 //  (les voitures garées du joueur sont aussi rangées ici)
+//  Les voitures arrêtées restent posées sur le sol (floorY) :
+//  collines et trottoirs compris
 // =====================================================
 import { scene } from '../render/engine.js';
 import { G } from '../core/ctx.js';
 import { save } from '../core/save.js';
 import { TRAFFIC_COUNT } from '../core/config.js';
 import { lerp, damp, angleDiff } from '../core/utils.js';
-import { N, CELL, LANE, rc } from '../world/city.js';
+import { N, CELL, LANE, rc, floorY } from '../world/city.js';
 import { buildTrafficCar, charMesh } from './models.js';
 import { smoke } from '../fx/particles.js';
 import { explode } from '../fx/destruction.js';
@@ -120,7 +122,7 @@ function explodeCar(o) {
   charMesh(o.mesh);
   o.vy = 10; o.roll = 0;
   o.spin = (Math.random() < 0.5 ? -1 : 1) * 7.85; // un tonneau complet en l'air
-  explode(o.vx, 1, o.vz, 1, o);
+  explode(o.vx, o.y + 1, o.vz, 1, o);
 }
 
 // ----- Mise à jour -----
@@ -160,28 +162,30 @@ function driveAI(o, dt, pedObs) {
 }
 
 // voiture arrêtée : garée, en feu ou en épave. Renvoie true s'il faut l'enlever
+// (avant, le sol était toujours à 0 : sur une colline, l'épave tombait DANS le relief)
 function updateStill(o, dt, f) {
   o.x = o.vx; o.z = o.vz;
-  if (o.y > 0 || o.vy > 0) { // saut + tonneau après l'explosion
+  const g = floorY(o.vx, o.vz); // le sol sous la voiture (relief + trottoir)
+  if (o.y > g + 0.01 || o.vy > 0) { // chute, ou saut + tonneau après l'explosion
     o.vy -= 25 * dt; o.y += o.vy * dt; o.roll += o.spin * dt;
-    if (o.y <= 0) { o.y = 0; o.vy = 0; o.spin = 0; o.roll = 0; }
-  }
+    if (o.y <= g) { o.y = g; o.vy = 0; o.spin = 0; o.roll = 0; }
+  } else { o.y = g; o.vy = 0; }
   o.mesh.position.set(o.vx, o.y + 0.8 * (1 - Math.cos(o.roll)), o.vz);
   o.mesh.rotation.set(0, o.heading, o.roll);
   const d = Math.hypot(o.vx - f.x, o.vz - f.z);
   if (o.dead) {
     if (!o.exploded) {
       o.burn -= dt;
-      if (Math.random() < 0.6) smoke(o.vx, 1.4, o.vz, true, true);
+      if (Math.random() < 0.6) smoke(o.vx, o.y + 1.4, o.vz, true, true);
       if (o.burn <= 0) explodeCar(o);
       return false;
     }
     o.deadT += dt;
-    if (o.deadT < 10 && Math.random() < 0.35) smoke(o.vx, 1.2, o.vz, true, o.deadT < 5);
+    if (o.deadT < 10 && Math.random() < 0.35) smoke(o.vx, o.y + 1.2, o.vz, true, o.deadT < 5);
     return (o.deadT > 20 && d > 50) || o.deadT > 60;
   }
   o.parkT += dt;
-  if (o.hp < 30 && Math.random() < 0.15) smoke(o.vx, 1.3, o.vz, false, false);
+  if (o.hp < 30 && Math.random() < 0.15) smoke(o.vx, o.y + 1.3, o.vz, false, false);
   return o.parkT > 30 && d > 160;
 }
 

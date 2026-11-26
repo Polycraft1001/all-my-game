@@ -4,6 +4,7 @@
 //  F / Entrée = sortir ou monter (ou voler la voiture la plus proche)
 //  Maj = courir · Espace = sauter
 //  R = appeler sa voiture (ou une neuve si elle est détruite)
+//  (le monde est infini : pas de mur invisible, on marche partout)
 // =====================================================
 import * as THREE from 'three';
 import { scene } from '../render/engine.js';
@@ -11,7 +12,7 @@ import { G } from '../core/ctx.js';
 import { save, persist } from '../core/save.js';
 import { STOLEN_CAR, WEAPONS } from '../core/config.js';
 import { clamp, lerp, damp } from '../core/utils.js';
-import { SPAWN, HALF, LIMIT, colliders, floorY, groundHeight } from '../world/city.js';
+import { SPAWN, colliders, floorY } from '../world/city.js';
 import { player, placeCar, nearestRoad, setPlayerCar, takeCar, localToWorld } from '../vehicles/driving.js';
 import { traffic, parkCar, removeTraffic, nearestCar, TRAFFIC_HP } from '../vehicles/traffic.js';
 import { makePlayable } from '../vehicles/models.js';
@@ -20,7 +21,7 @@ import { sfx } from '../ui/audio.js';
 
 const NO_INPUT = { up: false, down: false, steer: 0, sprint: false, jump: false };
 const R = 0.4; // rayon du héros pour les collisions
-const ground = (x, z) => Math.max(floorY(x, z), groundHeight(x, z));
+const ground = (x, z) => floorY(x, z); // relief + trottoirs + tremplins
 
 // ----- Le héros : petit personnage low-poly fait de boîtes -----
 const mat = (color, o = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.75, ...o });
@@ -154,16 +155,17 @@ function pushCars() {
     }
   }
 }
+// (plus de limite avec LIMIT : avant, un mur invisible bloquait à 1,4 km du centre)
 function move(dx, dz) {
   const p = hero.pos, ox = p.x, oz = p.z;
   p.x += dx; p.z += dz;
   if (ground(p.x, p.z) - p.y > 0.6) { p.x = ox; p.z = oz; } // marche trop haute
   pushBoxes();
   pushCars();
-  p.x = clamp(p.x, -LIMIT, LIMIT); p.z = clamp(p.z, -LIMIT, LIMIT);
 }
-function blocked(x, z) {
-  return colliders.some((b) => b.h > 0.5 && x > b.minX - R && x < b.maxX + R && z > b.minZ - R && z < b.maxZ + R);
+// y a-t-il un mur ici ? (m = marge autour du point)
+function blocked(x, z, m = R) {
+  return colliders.some((b) => b.h > 0.5 && x > b.minX - m && x < b.maxX + m && z > b.minZ - m && z < b.maxZ + m);
 }
 
 // ----- Dégâts -----
@@ -278,11 +280,15 @@ function replaceCar() {
   parkMine();
   setPlayerCar();
 }
+// une place sur la route la plus proche, un peu devant (pas sur le héros) et pas dans un mur
+// (plus de limite : avant, la voiture était renvoyée au bord du centre-ville)
 function roadNear(x, z) {
   const r = nearestRoad(x, z);
-  // un peu plus loin sur la route, pour ne pas tomber sur le héros
-  if (r.h === 0) r.z = clamp(r.z - 7, -HALF + 10, HALF - 10);
-  else r.x = clamp(r.x + 7, -HALF + 10, HALF - 10);
+  for (const d of [7, -7, 14, -14, 21]) {
+    const q = r.h === 0 ? { x: r.x, z: r.z - d, h: r.h } : { x: r.x + d, z: r.z, h: r.h };
+    if (!blocked(q.x, q.z, 2.4)) return q;
+  }
+  if (r.h === 0) r.z -= 7; else r.x += 7;
   return r;
 }
 export function callCar() {
@@ -367,7 +373,7 @@ export function updateHero(dt, inp) {
       hero.state = 'ok';
     }
   }
-  // gravité et sol (trottoirs, tremplins)
+  // gravité et sol (trottoirs, tremplins, collines)
   const g = ground(p.x, p.z);
   hero.vy -= 22 * dt;
   p.y += hero.vy * dt;
