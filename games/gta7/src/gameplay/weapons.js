@@ -10,6 +10,8 @@
 //  les autres armes s'achètent à l'armurerie 🔫 (shops.js).
 //  Attention : tirer en ville ou toucher quelqu'un
 //  fait venir la police (gameplay/police.js) !
+//  En ligne : on peut aussi toucher les autres joueurs
+//  (G.online, voir net/online.js).
 //  ➜ Ajouter une arme : core/config.js (WEAPONS)
 //     + son modèle 3D dans gameplay/onfoot.js (gun(...))
 //     + son prix dans gameplay/shops.js (GUN_PRICES)
@@ -108,7 +110,7 @@ function rayCar(o, d, x, y, z, h, S, top, maxT) {
   return rayBox(qx * cs - qz * sn, o.y, qx * sn + qz * cs, d.x * cs - d.z * sn, d.y, d.x * sn + d.z * cs,
     -S.W / 2, y, -S.L / 2, S.W / 2, y + top, S.L / 2, maxT);
 }
-// Renvoie ce que le rayon touche en premier : sol, mur, voiture, piéton, policier...
+// Renvoie ce que le rayon touche en premier : sol, mur, voiture, piéton, policier, autre joueur...
 function castRay(o, d, maxT, skipMyCar) {
   let best = maxT, kind = 'none', ref = null;
   if (d.y < -1e-4) { const t = (0.03 - o.y) / d.y; if (t > 0 && t < best) { best = t; kind = 'ground'; } }
@@ -128,6 +130,8 @@ function castRay(o, d, maxT, skipMyCar) {
   if (G.peds) { const r = G.peds.raycast(o, d, best); if (r) { best = r.t; kind = 'ped'; ref = r.p; } }
   const k = rayCops(o, d, best);
   if (k) { best = k.t; kind = 'cop'; ref = k.cop; }
+  const pl = G.online ? G.online.rayPlayers(o, d, best) : null; // les autres joueurs (en ligne)
+  if (pl) { best = pl.t; kind = 'player'; ref = pl.r; }
   return { kind, ref, t: best, x: o.x + d.x * best, y: o.y + d.y * best, z: o.z + d.z * best };
 }
 function clearShot(o, x, y, z) { // rien entre nous et la cible ?
@@ -154,6 +158,7 @@ function findTarget(o, h, range, cone) {
   if (G.peds) for (const p of G.peds.list) if (p.mode === 'walk') { G.peds.center(p, _c); add(_c.x, _c.y - 0.1, _c.z); }
   for (const c of cops) if (c.state === 'ok') add(c.x, c.y + 1.1, c.z);
   for (const c of traffic) if (!c.exploded) add(c.vx, c.y + 0.9, c.vz);
+  if (G.online) for (const r of G.online.targets()) add(r.x, r.y + (r.mode === 0 ? 0.9 : 1.1), r.z);
   cands.sort((a, b) => a.s - b.s);
   for (let i = 0; i < Math.min(4, cands.length); i++) if (clearShot(o, cands[i].x, cands[i].y, cands[i].z)) return cands[i];
   return null;
@@ -166,7 +171,7 @@ ring.renderOrder = 999; ring.visible = false;
 scene.add(ring);
 
 // ----- Visée à la souris : ce qu'il y a au centre de l'écran -----
-const LIVE = { ped: true, cop: true, car: true }; // cibles qui font rougir le viseur
+const LIVE = { ped: true, cop: true, car: true, player: true }; // cibles qui font rougir le viseur
 const _cam = new THREE.Vector3();
 const _so = { x: 0, y: 0, z: 0 };
 const _st = { x: 0, y: 0, z: 0, kind: 'none' };
@@ -218,6 +223,18 @@ function tracer(a, b) {
   t.m.visible = true; t.life = 0.05;
 }
 
+// ----- Tirs des autres joueurs (en ligne) : traînée, flamme et bruit -----
+// d = [départ x, y, z, arrivée x, y, z] · wid = id de l'arme
+G.drawShot = (d, wid) => {
+  const a = { x: d[0], y: d[1], z: d[2] }, b = { x: d[3], y: d[4], z: d[5] };
+  tracer(a, b);
+  muzzleFlash(a.x, a.y, a.z);
+  if (Math.hypot(b.x - a.x, b.y - a.y, b.z - a.z) > 0.5) burst(b.x, b.y, b.z, '#ffd27a', 3, 3, true);
+  const far = Math.hypot(camera.position.x - a.x, camera.position.z - a.z);
+  const known = WEAPONS.some((w) => w.id === wid && !w.melee);
+  if (far < 160) sfx(known ? wid : 'pistol', 0.55 * (1 - far / 160));
+};
+
 // ----- Roquettes -----
 const rocketGeo = new THREE.CylinderGeometry(0.09, 0.09, 0.8, 8); rocketGeo.rotateX(Math.PI / 2);
 const rocketMat = new THREE.MeshStandardMaterial({ color: 0x4b5d33, emissive: 0xff7a1a, emissiveIntensity: 0.6 });
@@ -244,8 +261,10 @@ function updateRockets(dt) {
     r.dist += step;
     if (hit.kind !== 'none' || r.dist > 220) {
       r.on = false; r.m.visible = false;
-      explode(hit.x, Math.max(0, hit.y - 0.5), hit.z, 1.1);
+      const by = Math.max(0, hit.y - 0.5);
+      explode(hit.x, by, hit.z, 1.1);
       blastCops(hit.x, hit.z, 7); // les policiers autour tombent
+      if (G.online) G.online.boom(hit.x, by, hit.z, 1.1); // l'explosion a lieu aussi chez les autres joueurs
       continue;
     }
     r.x = hit.x; r.y = hit.y; r.z = hit.z;
@@ -264,6 +283,10 @@ function hitEffect(h, d, w) {
   } else if (h.kind === 'cop') { // toucher un policier : la police s'énerve beaucoup !
     hitCop(h.ref, dmg || 10, d.x, d.z, w.force + 3);
     burst(h.x, h.y, h.z, '#ffffff', 4, 2.5, false);
+  }
+  else if (h.kind === 'player') { // un autre joueur (en ligne) : c'est lui qui perd ses points de vie
+    G.online.hitPlayer(h.ref, dmg, d.x, d.z, w.force + 3);
+    burst(h.x, h.y, h.z, h.ref.mode === 0 ? '#ffd27a' : '#ffffff', 5, 3, h.ref.mode === 0);
   }
   else if (h.kind === 'car') { damageTraffic(h.ref, dmg); burst(h.x, h.y, h.z, '#ffd27a', 6, 6, true); }
   else if (h.kind === 'mycar') { damageCar(dmg * 0.6); burst(h.x, h.y, h.z, '#ffd27a', 6, 6, true); }
@@ -303,6 +326,7 @@ function fire(w, s) {
   }
   const m = s.car ? s : heroMuzzle();
   const n = w.pellets || 1;
+  let end = null; // où arrive la première balle (pour les autres joueurs)
   for (let i = 0; i < n; i++) {
     const d = _d.clone();
     if (w.spread) {
@@ -313,7 +337,9 @@ function fire(w, s) {
     const hit = castRay(s, d, w.range, s.car);
     hitEffect(hit, d, w);
     tracer(m, hit);
+    if (!end) end = hit;
   }
+  if (G.online) G.online.shot(m, end || m, w.id); // les autres voient et entendent le tir
   muzzleFlash(m.x, m.y, m.z);
   sfx(w.id, 0.55);
   if (G.peds) G.peds.scare(s.x, s.z, 45);
@@ -338,6 +364,23 @@ function punch(w) {
     burst(cop.x, cop.y + 1.3, cop.z, '#ffffff', 4, 2, false);
     sfx('punch', 0.6);
     return;
+  }
+  // un autre joueur à pied juste devant ? (en ligne)
+  if (G.online) {
+    let pl = null, pd = 2.4;
+    for (const r of G.online.targets()) {
+      if (r.mode !== 1) continue;
+      const dx = r.x - hero.pos.x, dz = r.z - hero.pos.z, d = Math.hypot(dx, dz);
+      if (d < pd && (dx * fx + dz * fz) / (d || 1) > 0.3) { pd = d; pl = r; }
+    }
+    if (pl) {
+      const dx = pl.x - hero.pos.x, dz = pl.z - hero.pos.z, L = Math.hypot(dx, dz) || 1;
+      if (!arms.mouse) hero.h = Math.atan2(-dx, -dz);
+      G.online.hitPlayer(pl, w.dmg || 10, dx / L, dz / L, w.force);
+      burst(pl.x, pl.y + 1.3, pl.z, '#ffffff', 4, 2, false);
+      sfx('punch', 0.6);
+      return;
+    }
   }
   // on vise le piéton le plus proche devant soi
   if (G.peds) {
@@ -366,6 +409,7 @@ function punch(w) {
   }
   const hit = castRay(o, _d, w.range, false);
   if (hit.kind === 'cop') { hitCop(hit.ref, w.dmg || 10, _d.x, _d.z, w.force); sfx('punch', 0.6); }
+  else if (hit.kind === 'player') { G.online.hitPlayer(hit.ref, (w.dmg || 10) * 0.5, _d.x, _d.z, w.force); sfx('punch', 0.6); }
   else if (hit.kind === 'car') { damageTraffic(hit.ref, w.dmg * 0.5); sfx('punch', 0.6); }
   else if (hit.kind === 'mycar') { damageCar(w.dmg * 0.3); sfx('punch', 0.6); }
   else if (hit.kind === 'wall') sfx('punch', 0.3);
