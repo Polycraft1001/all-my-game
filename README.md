@@ -20,7 +20,7 @@ Active **GitHub Pages** (Settings → Pages → Branch `main` / root) puis va su
 
 ## Ajouter un jeu
 1. Mets le fichier `.html` (ou un dossier avec `index.html`) dans `games/` (sur GitHub : *Add file → Upload files*).
-2. C'est tout : le jeu apparaît tout seul sur le site (catégorie « Autres », jusqu'à 10 min de cache).
+2. C'est tout : le jeu apparaît tout seul sur le site (catégorie « Autres »), après le redéploiement de GitHub Pages (1 à 2 minutes).
 3. Optionnel : ajoute une ligne dans le tableau `GAMES` de `index.html` pour lui donner un titre, une icône, une couleur, une catégorie et une description.
 
 > La détection automatique lit le dossier `games/` via l'API GitHub. En local (sans GitHub), seuls les jeux listés dans `GAMES` apparaissent.

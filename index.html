@@ -199,27 +199,29 @@
     q.oninput = render;
     render();
 
-    // Découverte automatique : liste le dossier games/ du dépôt GitHub (en cache 10 min).
+    // Découverte automatique : liste le dossier games/ du dépôt GitHub (relu à chaque visite).
     // Un fichier .html ou un dossier (avec index.html dedans) déposé dans games/ est ajouté tout seul.
     const COLORS = ['#1f4f7a', '#6a2a7a', '#7a4a1f', '#1f6a6a', '#7a1f3a', '#3a5a1f'];
     const pretty = n => n.replace(/\.html?$/i, '').replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
     async function discover() {
       try {
-        let items, c = null;
-        try { c = JSON.parse(localStorage.getItem('amg-games')); } catch (e) {}
-        if (c && Date.now() - c.t < 600000) items = c.items;
-        else {
-          const r = await fetch('https://api.github.com/repos/Polycraft1001/all-my-game/contents/games');
-          if (!r.ok) return;
+        // On relit le dossier à chaque visite. Le cache ne sert que si GitHub ne répond pas.
+        let items;
+        try {
+          const r = await fetch('https://api.github.com/repos/Polycraft1001/all-my-game/contents/games', { cache: 'no-store' });
+          if (!r.ok) throw new Error('API ' + r.status);
           items = (await r.json()).map(x => ({ name: x.name, type: x.type }));
-          try { localStorage.setItem('amg-games', JSON.stringify({ t: Date.now(), items })); } catch (e) {}
+          try { localStorage.setItem('amg-games', JSON.stringify(items)); } catch (e) {}
+        } catch (e) {
+          try { items = JSON.parse(localStorage.getItem('amg-games')); } catch (e2) {}
+          if (!items) return;
         }
         const known = new Set(GAMES.map(g => g.file.split('/')[1]));
         let added = 0;
         items.forEach(x => {
           const isFile = x.type === 'file' && /\.html?$/i.test(x.name), isDir = x.type === 'dir';
           if ((!isFile && !isDir) || known.has(x.name)) return;
-          GAMES.push({ title: pretty(x.name), file: 'games/' + x.name + (isDir ? '/index.html' : ''), emoji: '🎮', cat: 'Autres', color: COLORS[added++ % COLORS.length], desc: 'Jeu ajouté à la main.' });
+          GAMES.push({ title: pretty(x.name), file: 'games/' + encodeURIComponent(x.name) + (isDir ? '/index.html' : ''), emoji: '🎮', cat: 'Autres', color: COLORS[added++ % COLORS.length], desc: 'Jeu ajouté à la main.' });
         });
         if (added) {
           buildCats(); render();
