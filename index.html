@@ -35,6 +35,11 @@
     .tab { padding:12px 22px; border-radius:14px; border:1px solid #2a3358; background:var(--card); color:var(--mut); cursor:pointer; font-size:1rem; font-weight:600; }
     .tab.on { background:linear-gradient(90deg,var(--acc),var(--acc2)); color:#fff; border-color:transparent; }
     .nw { max-width:1000px; margin:0 auto; padding:0 24px 60px; }
+    .nw-credits { background:linear-gradient(135deg,#2a1f5c,#123a52); border:1px solid #5865f2; border-radius:18px; padding:22px; margin-bottom:22px; }
+    .nw-credits p { margin-top:10px; color:var(--txt); }
+    .nw-credits .btn { display:inline-block; margin-left:6px; }
+    .nw a:not(.btn) { color:var(--acc2); }
+    .nw-hero { margin-top:12px; }
     .nw-hero { display:flex; gap:20px; align-items:center; background:linear-gradient(160deg,var(--card2),var(--card)); border:1px solid #232c4d; border-radius:18px; padding:24px; }
     .nw-icon { font-size:4rem; }
     .nw-hero h2 { font-size:1.8rem; }
@@ -73,36 +78,58 @@
 
   <section id="tab-numworks" hidden>
     <div class="nw">
-      <div class="nw-hero">
-        <div class="nw-icon">🧮</div>
- <div>
-          <h2>STI2D-OS</h2>
-          <p>Un OS alternatif pour calculatrice <b>NumWorks</b> qui permet d'installer un système et des jeux directement sur ta calculatrice.</p>
-          <p class="credit">Projet créé par <b>Yamii</b> &amp; <b>Derim</b> — pas par moi. Tous droits réservés à leurs auteurs.</p>
- </div>
+
+      <div class="nw-credits">
+        <h2>🙏 Crédits</h2>
+        <p><b>STI2D-OS</b> a été créé par <b>Yamii</b> (Discord : <code>cjnw</code>) &amp; <b>Derim</b> (Discord : <code>irationnel</code>). Il est publié ici avec leur autorisation. Tous droits réservés à leurs auteurs.</p>
+        <p>Rejoins leur serveur officiel : <a class="btn main" href="https://discord.gg/sti2d" target="_blank" rel="noopener">💬 discord.gg/sti2d</a></p>
+        <p class="credit"><b>NumPlay</b> a été créé par <b>Mason363</b>. Licence libre GNU GPL v3 (<a href="numworks/numplay/LICENSE" target="_blank">voir la licence</a>).</p>
       </div>
 
+      <div class="nw-hero">
+        <div class="nw-icon">🧮</div>
+        <div>
+          <h2>STI2D-OS</h2>
+   <p>Un OS alternatif pour calculatrice <b>NumWorks</b>, avec un installateur qui met le système et des jeux sur la calculatrice.</p>
+   <p class="credit">Par Yamii &amp; Derim · <a href="https://discord.gg/sti2d" target="_blank" rel="noopener">discord.gg/sti2d</a> · <a href="https://github.com/osyamiii/STI2D-OS-V1/" target="_blank" rel="noopener">GitHub</a></p>
+        </div>
+      </div>
       <div class="nw-links">
- <a class="btn main" href="https://github.com/osyamiii/STI2D-OS-V1/" target="_blank" rel="noopener">📦 Voir le projet sur GitHub</a>
-        <a class="btn" href="https://discord.gg/sti2d" target="_blank" rel="noopener">💬 Discord officiel</a>
+ <a class="btn main" href="numworks/sti2d-os/STI2D-OSv1.html" target="_blank" rel="noopener">🚀 Ouvrir l'installateur STI2D-OS</a>
+ <a class="btn" href="numworks/sti2d-os/LISEZMOI.md" target="_blank">📖 Lisez-moi</a>
+ <a class="btn" href="numworks/sti2d-os/LICENSE-STI2D-OS-ORIGINAL-WORKS.txt" target="_blank">⚖️ Licence</a>
+      </div>
+
+      <div class="nw-hero">
+        <div class="nw-icon">🕹️</div>
+ <div>
+          <h2>NumPlay</h2>
+          <p>Une appli avec une trentaine de jeux gratuits pour NumWorks, plus de gros jeux à installer séparément (N0110, N0115, N0120).</p>
+   <p class="credit">Par Mason363 · GPL v3 · <a href="https://github.com/Mason363/NumPlay" target="_blank" rel="noopener">GitHub officiel</a></p>
+        </div>
+      </div>
+      <div class="nw-links">
+        <a class="btn main" href="https://mason363.github.io/NumPlay/customize/" target="_blank" rel="noopener">🎮 NumPlay Studio (choisir ses jeux)</a>
+        <a class="btn" href="https://github.com/Mason363/NumPlay/releases/latest/download/NumPlay.nwa" target="_blank" rel="noopener">⬇️ Télécharger NumPlay.nwa</a>
+        <a class="btn" href="https://github.com/Polycraft1001/all-my-game/tree/main/numworks/numplay" target="_blank" rel="noopener">📂 Code source</a>
       </div>
 
       <div class="nw-grid">
+ <div class="nw-card">
+   <h3>1. Navigateur</h3>
+   <p>Utilise <b>Chrome</b> ou <b>Edge</b> sur ordinateur (WebUSB obligatoire).</p>
+        </div>
+ <div class="nw-card">
+   <h3>2. Brancher</h3>
+          <p>Relie la NumWorks en USB, puis ouvre l'installateur STI2D-OS ou NumPlay Studio.</p>
+        </div>
         <div class="nw-card">
-          <h3>1. Télécharger</h3>
-          <p>Sur la page GitHub : <b>Code → Download ZIP</b>, puis décompresse l'archive.</p>
- </div>
-        <div class="nw-card">
-   <h3>2. Ouvrir l'installateur</h3>
-          <p>Ouvre <code>Standalone-Installer/STI2D-OSv1.html</code> avec <b>Chrome</b> ou <b>Edge</b> (WebUSB obligatoire).</p>
- </div>
-        <div class="nw-card">
-   <h3>3. Brancher la NumWorks</h3>
-          <p>Relie la calculatrice en USB et suis les étapes de l'installateur (lis bien le <code>LISEZMOI.md</code>).</p>
- </div>
-        <div class="nw-card warn">
-   <h3>⚠️ Attention</h3>
-          <p>Installer un OS non officiel peut effacer tes données et n'est pas autorisé en mode examen. Tu fais ça à tes risques.</p>
+          <h3>3. Suivre les étapes</h3>
+          <p>Laisse-toi guider. Pour toute question, va sur le Discord <b>discord.gg/sti2d</b>.</p>
+        </div>
+ <div class="nw-card warn">
+          <h3>⚠️ Attention</h3>
+   <p>Un OS non officiel peut effacer tes données et n'est pas autorisé en mode examen. Tu fais ça à tes risques.</p>
  </div>
       </div>
     </div>
