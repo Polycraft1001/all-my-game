@@ -73,8 +73,7 @@
     </div>
     <div class="bar" id="cats"></div>
     <main class="grid" id="grid"></main>
-    <footer>Ajoute un jeu : dépose le fichier dans <code>games/</code> et ajoute une ligne dans la liste <code>GAMES</code>.</footer>
-  </section>
+    <footer>Ajoute un jeu : dépose le fichier <code>.html</code> (ou un dossier avec <code>index.html</code>) dans <code>games/</code>, il apparaît tout seul. Pour lui donner une icône et une description, ajoute une ligne dans <code>GAMES</code>.</footer>  </section>
 
   <section id="tab-numworks" hidden>
     <div class="nw">
@@ -147,6 +146,8 @@
 
   <script>
     // ➜ Pour ajouter un jeu, ajoute simplement un objet ici.
+    // Les jeux déposés dans games/ apparaissent tout seuls (voir discover() plus bas).
+    // Cette liste sert seulement à leur donner une icône, une description, une catégorie…
     const GAMES = [
       { title:"Forest Rally Drift 3D", file:"games/forest-rally-drift.html", emoji:"🏎️", cat:"Course", color:"#1f6f43", desc:"Rallye en forêt, drift et vitesse en 3D. 👥 Multijoueur en ligne avec un code !" },
       { title:"GTA7", file:"games/gta7/index.html", emoji:"🏙️", cat:"Monde ouvert", color:"#7a1f5c", desc:"Ville 3D en monde ouvert : voitures, avions, police et missions." },
@@ -157,12 +158,16 @@
     const player = document.getElementById('player'), frame = document.getElementById('frame');
     let cat = 'Tous';
 
-    ['Tous', ...new Set(GAMES.map(g => g.cat))].forEach(c => {
-      const b = document.createElement('button');
-      b.textContent = c; if (c === cat) b.className = 'on';
-      b.onclick = () => { cat = c; [...cats.children].forEach(x => x.classList.toggle('on', x === b)); render(); };
-      cats.appendChild(b);
-    });
+    function buildCats() {
+      cats.innerHTML = '';
+      ['Tous', ...new Set(GAMES.map(g => g.cat))].forEach(c => {
+        const b = document.createElement('button');
+        b.textContent = c; if (c === cat) b.className = 'on';
+        b.onclick = () => { cat = c; [...cats.children].forEach(x => x.classList.toggle('on', x === b)); render(); };
+        cats.appendChild(b);
+      });
+    }
+    buildCats();
 
     function render() {
       const s = q.value.trim().toLowerCase();
@@ -193,6 +198,37 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.fullscreenElement && player.classList.contains('open')) closeGame(); });
     q.oninput = render;
     render();
+
+    // Découverte automatique : liste le dossier games/ du dépôt GitHub (en cache 10 min).
+    // Un fichier .html ou un dossier (avec index.html dedans) déposé dans games/ est ajouté tout seul.
+    const COLORS = ['#1f4f7a', '#6a2a7a', '#7a4a1f', '#1f6a6a', '#7a1f3a', '#3a5a1f'];
+    const pretty = n => n.replace(/\.html?$/i, '').replace(/[-_]+/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    async function discover() {
+      try {
+        let items, c = null;
+        try { c = JSON.parse(localStorage.getItem('amg-games')); } catch (e) {}
+        if (c && Date.now() - c.t < 600000) items = c.items;
+        else {
+          const r = await fetch('https://api.github.com/repos/Polycraft1001/all-my-game/contents/games');
+          if (!r.ok) return;
+          items = (await r.json()).map(x => ({ name: x.name, type: x.type }));
+          try { localStorage.setItem('amg-games', JSON.stringify({ t: Date.now(), items })); } catch (e) {}
+        }
+        const known = new Set(GAMES.map(g => g.file.split('/')[1]));
+        let added = 0;
+        items.forEach(x => {
+          const isFile = x.type === 'file' && /\.html?$/i.test(x.name), isDir = x.type === 'dir';
+          if ((!isFile && !isDir) || known.has(x.name)) return;
+          GAMES.push({ title: pretty(x.name), file: 'games/' + x.name + (isDir ? '/index.html' : ''), emoji: '🎮', cat: 'Autres', color: COLORS[added++ % COLORS.length], desc: 'Jeu ajouté à la main.' });
+        });
+        if (added) {
+          buildCats(); render();
+          const h2 = decodeURIComponent(location.hash.slice(1));
+          const g2 = GAMES.find(g => g.file === h2); if (g2 && !player.classList.contains('open')) openGame(g2);
+        }
+      } catch (e) { /* hors ligne ou limite GitHub atteinte : on garde la liste ci-dessus */ }
+    }
+    discover();
 
     // Onglets
     function showTab(t) {
