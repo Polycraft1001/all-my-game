@@ -31,6 +31,23 @@
     #player .top b { flex:1; }
     #player .top button, #player .top a { background:var(--card2); color:var(--txt); border:none; padding:8px 14px; border-radius:10px; cursor:pointer; text-decoration:none; font-size:.9rem; }
     #player iframe { flex:1; border:0; width:100%; background:#000; }
+    .tabs { display:flex; justify-content:center; gap:8px; padding:0 24px 24px; }
+    .tab { padding:12px 22px; border-radius:14px; border:1px solid #2a3358; background:var(--card); color:var(--mut); cursor:pointer; font-size:1rem; font-weight:600; }
+    .tab.on { background:linear-gradient(90deg,var(--acc),var(--acc2)); color:#fff; border-color:transparent; }
+    .nw { max-width:1000px; margin:0 auto; padding:0 24px 60px; }
+    .nw-hero { display:flex; gap:20px; align-items:center; background:linear-gradient(160deg,var(--card2),var(--card)); border:1px solid #232c4d; border-radius:18px; padding:24px; }
+    .nw-icon { font-size:4rem; }
+    .nw-hero h2 { font-size:1.8rem; }
+    .nw-hero p { color:var(--mut); margin-top:8px; }
+    .nw-hero .credit { font-size:.85rem; }
+    .nw-links { display:flex; flex-wrap:wrap; gap:12px; margin:20px 0; }
+    .btn { padding:12px 18px; border-radius:12px; background:var(--card2); color:var(--txt); text-decoration:none; border:1px solid #2a3358; font-weight:600; }
+    .btn.main { background:linear-gradient(90deg,var(--acc),var(--acc2)); border-color:transparent; }
+    .nw-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
+    .nw-card { background:var(--card); border:1px solid #232c4d; border-radius:14px; padding:18px; }
+    .nw-card p { color:var(--mut); font-size:.92rem; margin-top:8px; }
+    .nw-card.warn { border-color:#6b4a10; }
+    code { background:#262f55; padding:1px 6px; border-radius:6px; font-size:.85em; }
     footer { text-align:center; color:var(--mut); font-size:.85rem; padding-bottom:30px; }
   </style>
 </head>
@@ -40,13 +57,56 @@
     <p>Tous mes jeux web au même endroit — clique et joue.</p>
   </header>
 
-  <div class="bar">
-    <input id="q" type="search" placeholder="Rechercher un jeu…">
-  </div>
-  <div class="bar" id="cats"></div>
+  <nav class="tabs">
+    <button class="tab on" data-tab="jeux">🎮 Jeux</button>
+    <button class="tab" data-tab="numworks">🧮 NumWorks</button>
+  </nav>
 
-  <main class="grid" id="grid"></main>
-  <footer>Ajoute un jeu : dépose le fichier dans <code>games/</code> et ajoute une ligne dans la liste <code>GAMES</code>.</footer>
+  <section id="tab-jeux">
+    <div class="bar">
+      <input id="q" type="search" placeholder="Rechercher un jeu…">
+    </div>
+    <div class="bar" id="cats"></div>
+    <main class="grid" id="grid"></main>
+    <footer>Ajoute un jeu : dépose le fichier dans <code>games/</code> et ajoute une ligne dans la liste <code>GAMES</code>.</footer>
+  </section>
+
+  <section id="tab-numworks" hidden>
+    <div class="nw">
+      <div class="nw-hero">
+        <div class="nw-icon">🧮</div>
+ <div>
+          <h2>STI2D-OS</h2>
+          <p>Un OS alternatif pour calculatrice <b>NumWorks</b> qui permet d'installer un système et des jeux directement sur ta calculatrice.</p>
+          <p class="credit">Projet créé par <b>Yamii</b> &amp; <b>Derim</b> — pas par moi. Tous droits réservés à leurs auteurs.</p>
+ </div>
+      </div>
+
+      <div class="nw-links">
+ <a class="btn main" href="https://github.com/osyamiii/STI2D-OS-V1/" target="_blank" rel="noopener">📦 Voir le projet sur GitHub</a>
+        <a class="btn" href="https://discord.gg/sti2d" target="_blank" rel="noopener">💬 Discord officiel</a>
+      </div>
+
+      <div class="nw-grid">
+        <div class="nw-card">
+          <h3>1. Télécharger</h3>
+          <p>Sur la page GitHub : <b>Code → Download ZIP</b>, puis décompresse l'archive.</p>
+ </div>
+        <div class="nw-card">
+   <h3>2. Ouvrir l'installateur</h3>
+          <p>Ouvre <code>Standalone-Installer/STI2D-OSv1.html</code> avec <b>Chrome</b> ou <b>Edge</b> (WebUSB obligatoire).</p>
+ </div>
+        <div class="nw-card">
+   <h3>3. Brancher la NumWorks</h3>
+          <p>Relie la calculatrice en USB et suis les étapes de l'installateur (lis bien le <code>LISEZMOI.md</code>).</p>
+ </div>
+        <div class="nw-card warn">
+   <h3>⚠️ Attention</h3>
+          <p>Installer un OS non officiel peut effacer tes données et n'est pas autorisé en mode examen. Tu fais ça à tes risques.</p>
+ </div>
+      </div>
+    </div>
+  </section>
 
   <div id="player">
     <div class="top">
@@ -106,6 +166,18 @@
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.fullscreenElement && player.classList.contains('open')) closeGame(); });
     q.oninput = render;
     render();
+
+    // Onglets
+    function showTab(t) {
+      document.querySelectorAll('.tab').forEach(b => b.classList.toggle('on', b.dataset.tab === t));
+      document.getElementById('tab-jeux').hidden = t !== 'jeux';
+      document.getElementById('tab-numworks').hidden = t !== 'numworks';
+    }
+    document.querySelectorAll('.tab').forEach(b => b.onclick = () => {
+      showTab(b.dataset.tab);
+      history.replaceState(null, '', b.dataset.tab === 'numworks' ? '#numworks' : location.pathname);
+    });
+    if (location.hash === '#numworks') showTab('numworks');
 
     // Lien direct vers un jeu (ex: #games%2Faviator.html)
     const h = decodeURIComponent(location.hash.slice(1));
