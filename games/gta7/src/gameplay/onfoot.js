@@ -143,6 +143,16 @@ function pushCars() {
       hurtHero(Math.abs(player.speed) * 2, -Math.sin(player.vh) * sg, -Math.cos(player.vh) * sg, Math.abs(player.speed) * 0.8);
     }
   }
+  // les voitures des autres joueurs (en ligne) : on peut se faire renverser !
+  if (G.online) for (const o of G.online.targets()) {
+    if (o.mode !== 0 || !o.car) continue;
+    const hit = pushCar(o.x, o.z, o.h, o.car.S, o.y, o.car.top || 1.5);
+    if (hit && Math.abs(o.speed) > 4 && hero.state === 'ok') {
+      const sg = Math.sign(o.speed);
+      G.online.touched(o);
+      hurtHero(Math.abs(o.speed) * 2.2, -Math.sin(o.h) * sg, -Math.cos(o.h) * sg, Math.abs(o.speed) * 0.8);
+    }
+  }
 }
 function move(dx, dz) {
   const p = hero.pos, ox = p.x, oz = p.z;

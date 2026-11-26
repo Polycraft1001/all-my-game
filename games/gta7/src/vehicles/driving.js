@@ -189,6 +189,28 @@ function collide() {
       if (imp > 6) { damageTraffic(o, imp * 1.6); damageCar(imp * 0.5); }
     }
   }
+  // les voitures des autres joueurs (en ligne) : chacun gère le choc de SON côté
+  if (G.online) for (const o of G.online.targets()) {
+    if (o.mode !== 0) continue;
+    const dx = p.x - o.x, dz = p.z - o.z, d = Math.hypot(dx, dz);
+    if (d < 4 && d > 0.01 && Math.abs(player.y - o.y) < 2) {
+      const nx = dx / d, nz = dz / d;
+      p.x = o.x + nx * 4; p.z = o.z + nz * 4;
+      const imp = hitResponse(nx, nz);              // moi qui fonce sur lui
+      if (imp > 6) damageCar(imp * 0.5);
+      // lui qui fonce sur moi : sa vitesse vers moi
+      const ram = (-Math.sin(o.h) * nx - Math.cos(o.h) * nz) * o.speed;
+      if (ram > 3) {
+        G.online.touched(o);
+        if (ram > 6) {
+          damageCar(ram * 0.8);
+          G.shake = Math.max(G.shake, Math.min(1, ram / 25));
+          burst(p.x - nx * 1.8, player.y + 0.7, p.z - nz * 1.8, '#ffcc55', 16, 10);
+          if (D.drifting) crashDrift();
+        }
+      }
+    }
+  }
   // (plus de bord du monde : la ville est infinie)
 }
 
