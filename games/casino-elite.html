@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Casino Élite - Sélection des Jeux</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
+            color: white;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 100;
+        }
+
+        .logo {
+            font-size: 2.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        .logo::before {
+            content: '🎰';
+            font-size: 1.2em;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .balance {
+            display: flex;
+            align-items: center;
+            gap: 25px;
+            font-size: 1.2em;
+            font-weight: 600;
+        }
+
+        .balance-item {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 25px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s ease;
+        }
+
+        .balance-item:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .main-container {
+            padding: 40px 30px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .welcome-section {
+            text-align: center;
+            margin-bottom: 50px;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .welcome-title {
+            font-size: 3.5em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #00ff88 0%, #667eea 50%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+            text-shadow: 0 0 30px rgba(0,255,136,0.3);
+        }
+
+        .welcome-subtitle {
+            font-size: 1.3em;
+            opacity: 0.8;
+            margin-bottom: 30px;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .game-card {
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+            border-radius: 20px;
+            padding: 0;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.4s ease;
+            cursor: pointer;
+            position: relative;
+            animation: fadeInUp 1s ease-out;
+        }
+
+        .game-card:hover {
+            transform: translateY(-10px) scale(1.02);
+            box-shadow: 0 20px 40px rgba(0,255,136,0.2);
+            border-color: #00ff88;
+        }
+
+        .game-header {
+            height: 200px;
+            background: linear-gradient(135deg, #87CEEB 0%, #4169E1 50%, #1e3c72 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game-icon {
+            font-size: 4em;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+            z-index: 2;
+        }
+
+        .game-header::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+            animation: rotate 20s linear infinite;
+        }
+
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .game-content {
+            padding: 25px;
+        }
+
+        .game-title {
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #00ff88;
+        }
+
+        .game-description {
+            opacity: 0.8;
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+
+        .game-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            font-size: 0.9em;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+
+        .stat-label {
+            opacity: 0.7;
+            text-transform: uppercase;
+            font-size: 0.8em;
+            letter-spacing: 1px;
+        }
+
+        .play-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            background: linear-gradient(135deg, #00ff88 0%, #00cc6a 100%);
+            color: white;
+            box-shadow: 0 4px 20px rgba(0,255,136,0.3);
+        }
+
+        .play-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 25px rgba(0,255,136,0.4);
+        }
+
+        .featured-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: linear-gradient(135deg, #ff4757 0%, #ff3838 100%);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+            z-index: 3;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from { box-shadow: 0 0 5px rgba(255,71,87,0.5); }
+            to { box-shadow: 0 0 15px rgba(255,71,87,0.8); }
+        }
+
+        .categories {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+        }
+
+        .category-btn {
+            padding: 12px 25px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 25px;
+            background: transparent;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            backdrop-filter: blur(10px);
+        }
+
+        .category-btn.active,
+        .category-btn:hover {
+            border-color: #00ff88;
+            background: rgba(0,255,136,0.1);
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .floating-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(0,255,136,0.6);
+            border-radius: 50%;
+            animation: float-particle 15s infinite linear;
+        }
+
+        @keyframes float-particle {
+            0% {
+                transform: translateY(100vh) translateX(0px);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .welcome-title {
+                font-size: 2.5em;
+            }
+            
+            .games-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .main-container {
+                padding: 30px 20px;
+            }
+            
+            .header {
+                padding: 15px 20px;
+            }
+            
+            .logo {
+                font-size: 1.8em;
+            }
+            
+            .balance {
+                flex-direction: column;
+                gap: 10px;
+                font-size: 1em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="floating-particles" id="particles"></div>
+    
+    <header class="header">
+        <div class="logo">
+            <span>CASINO ÉLITE</span>
+        </div>
+        <div class="balance">
+            <div class="balance-item">💰 €2,500.00</div>
+            <div class="balance-item">💎 150 Points</div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <section class="welcome-section">
+            <h1 class="welcome-title">Choisissez Votre Jeu</h1>
+            <p class="welcome-subtitle">Découvrez notre collection exclusive de jeux de casino premium</p>
+        </section>
+
+        <nav class="categories">
+            <button class="category-btn active" data-category="all">Tous les Jeux</button>
+            <button class="category-btn" data-category="crash">Crash Games</button>
+            <button class="category-btn" data-category="slots">Machines à Sous</button>
+            <button class="category-btn" data-category="table">Jeux de Table</button>
+            <button class="category-btn" data-category="live">Live Casino</button>
+        </nav>
+
+        <div class="games-grid" id="gamesGrid">
+            <!-- Aviator -->
+            <div class="game-card" data-category="crash">
+                <div class="featured-badge">Populaire</div>
+                <div class="game-header">
+                    <div class="game-icon">✈️</div>
+                </div>
+                <div class="game-content">
+                    <h3 class="game-title">Aviator</h3>
+                    <p class="game-description">Regardez l'avion s'élever et encaissez vos gains avant qu'il ne s'écrase ! Un jeu de timing et d'adrénaline pure.</p>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <div class="stat-value">97.3%</div>
+                            <div class="stat-label">RTP</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">x1000</div>
+                            <div class="stat-label">Max Win</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">€0.10</div>
+                            <div class="stat-label">Min Bet</div>
+                        </div>
+                    </div>
+                    <button class="play-btn" onclick="selectGame('aviator')">Jouer Maintenant</button>
+                </div>
+            </div>
+
+            <!-- Rocket Crash -->
+            <div class="game-card" data-category="crash">
+                <div class="game-header" style="background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 50%, #c44569 100%);">
+                    <div class="game-icon">🚀</div>
+                </div>
+                <div class="game-content">
+                    <h3 class="game-title">Rocket Crash</h3>
+                    <p class="game-description">Montez à bord de la fusée spatiale et visez les étoiles ! Encaissez avant l'explosion cosmique.</p>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <div class="stat-value">96.8%</div>
+                            <div class="stat-label">RTP</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">x2000</div>
+                            <div class="stat-label">Max Win</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">€0.20</div>
+                            <div class="stat-label">Min Bet</div>
+                        </div>
+                    </div>
+                    <button class="play-btn" onclick="selectGame('rocket')">Jouer Maintenant</button>
+                </div>
+            </div>
+
+            <!-- Lightning Slots -->
+            <div class="game-card" data-category="slots">
+                <div class="featured-badge">Nouveau</div>
+                <div class="game-header" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);">
+                    <div class="game-icon">⚡</div>
+                </div>
+                <div class="game-content">
+                    <h3 class="game-title">Lightning Slots</h3>
+                    <p class="game-description">Des machines à sous électrisantes avec des multiplicateurs fulgurants et des jackpots progressifs.</p>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <div class="stat-value">95.2%</div>
+                            <div class="stat-label">RTP</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">x5000</div>
+                            <div class="stat-label">Max Win</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">€0.05</div>
+                            <div class="stat-label">Min Bet</div>
+                        </div>
+                    </div>
+                    <button class="play-btn" onclick="selectGame('lightning-slots')">Jouer Maintenant</button>
+                </div>
+            </div>
+
+            <!-- Golden Roulette -->
+            <div class="game-card" data-category="table">
+                <div class="game-header" style="background: linear-gradient(135deg, #ffd700 0%, #ffb347 50%, #ff8c00 100%);">
+                    <div class="game-icon">🎯</div>
+                </div>
+                <div class="game-content">
+                    <h3 class="game-title">Golden Roulette</h3>
+                    <p class="game-description">La roulette européenne premium avec des mises élevées et une ambiance VIP authentique.</p>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <div class="stat-value">97.3%</div>
+                            <div class="stat-label">RTP</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">x35</div>
+                            <div class="stat-label">Max Win</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">€1.00</div>
+                            <div class="stat-label">Min Bet</div>
+                        </div>
+                    </div>
+                    <button class="play-btn" onclick="selectGame('roulette')">Jouer Maintenant</button>
+                </div>
+            </div>
+
+            <!-- Blackjack Elite -->
+            <div class="game-card" data-category="table">
+                <div class="game-header" style="background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);">
+                    <div class="game-icon">🃏</div>
+                </div>
+                <div class="game-content">
+                    <h3 class="game-title">Blackjack Elite</h3>
+                    <p class="game-description">Le blackjack classique revisité avec des fonctionnalités modernes et des stratégies avancées.</p>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <div class="stat-value">99.5%</div>
+                            <div class="stat-label">RTP</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">x3</div>
+                            <div class="stat-label">Max Win</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">€2.00</div>
+                            <div class="stat-label">Min Bet</div>
+                        </div>
+                    </div>
+                    <button class="play-btn" onclick="selectGame('blackjack')">Jouer Maintenant</button>
+                </div>
+            </div>
+
+            <!-- Live Casino -->
+            <div class="game-card" data-category="live">
+                <div class="featured-badge">Live</div>
+                <div class="game-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);">
+                    <div class="game-icon">🎥</div>
+                </div>
+                <div class="game-content">
+                    <h3 class="game-title">Casino Live</h3>
+                    <p class="game-description">Jouez en direct avec de vrais croupiers dans une ambiance de casino authentique.</p>
+                    <div class="game-stats">
+                        <div class="stat">
+                            <div class="stat-value">98.1%</div>
+                            <div class="stat-label">RTP</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">24/7</div>
+                            <div class="stat-label">Disponible</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">€5.00</div>
+                            <div class="stat-label">Min Bet</div>
+                        </div>
+                    </div>
+                    <button class="play-btn" onclick="selectGame('live')">Jouer Maintenant</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Initialisation des particules flottantes
+        function createParticles() {
+            const particlesContainer = document.getElementById('particles');
+            
+            for (let i = 0; i < 15; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.animationDelay = Math.random() * 15 + 's';
+                particle.style.animationDuration = (15 + Math.random() * 10) + 's';
+                particlesContainer.appendChild(particle);
+            }
+        }
+
+        // Filtrage par catégories
+        function filterGames() {
+            const categoryBtns = document.querySelectorAll('.category-btn');
+            const gameCards = document.querySelectorAll('.game-card');
+
+            categoryBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    // Mise à jour des boutons actifs
+                    categoryBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    const category = btn.dataset.category;
+
+                    // Filtrage des cartes
+                    gameCards.forEach(card => {
+                        if (category === 'all' || card.dataset.category === category) {
+                            card.style.display = 'block';
+                            card.style.animation = 'fadeInUp 0.6s ease-out';
+                        } else {
+                            card.style.display = 'none';
+                        }
+                    });
+                });
+            });
+        }
+
+        // Sélection d'un jeu
+        function selectGame(gameId) {
+            // Animation de sélection
+            const btn = event.target;
+            btn.style.transform = 'scale(0.95)';
+            btn.textContent = 'Chargement...';
+            
+            setTimeout(() => {
+                btn.style.transform = 'scale(1)';
+                btn.textContent = 'Jouer Maintenant';
+                
+                // Ici vous pouvez ajouter la logique pour charger le jeu
+                alert(`Lancement de ${gameId}...`);
+            }, 1000);
+        }
+
+        // Animation des cartes au survol
+        function animateCards() {
+            const cards = document.querySelectorAll('.game-card');
+            
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', () => {
+                    card.style.transform = 'translateY(-10px) scale(1.02)';
+                });
+                
+                card.addEventListener('mouseleave', () => {
+                    card.style.transform = 'translateY(0) scale(1)';
+                });
+            });
+        }
+
+        // Initialisation
+        document.addEventListener('DOMContentLoaded', () => {
+            createParticles();
+            filterGames();
+            animateCards();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>All My Game 🎮</title>
+  <style>
+    :root { --bg:#0b0f1a; --card:#151b2e; --card2:#1d2540; --txt:#e8ecff; --mut:#8b93b8; --acc:#7c5cff; --acc2:#00d4ff; }
+    * { box-sizing:border-box; margin:0; padding:0; }
+    body { font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:radial-gradient(circle at 20% 0%,#1a1440 0%,var(--bg) 55%); color:var(--txt); min-height:100vh; }
+    header { padding:40px 24px 20px; text-align:center; }
+    h1 { font-size:clamp(2rem,6vw,3.4rem); font-weight:900; background:linear-gradient(90deg,var(--acc),var(--acc2)); -webkit-background-clip:text; background-clip:text; color:transparent; }
+    header p { color:var(--mut); margin-top:8px; }
+    .bar { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; padding:0 24px 24px; }
+    .bar input { padding:12px 16px; border-radius:12px; border:1px solid #2a3358; background:var(--card); color:var(--txt); width:min(360px,100%); font-size:1rem; }
+    .bar button { padding:10px 16px; border-radius:999px; border:1px solid #2a3358; background:var(--card); color:var(--mut); cursor:pointer; font-size:.95rem; }
+    .bar button.on { background:var(--acc); color:#fff; border-color:var(--acc); }
+    .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:20px; padding:0 24px 60px; max-width:1200px; margin:0 auto; }
+    .card { background:linear-gradient(160deg,var(--card2),var(--card)); border:1px solid #232c4d; border-radius:18px; overflow:hidden; cursor:pointer; transition:transform .2s,box-shadow .2s; }
+    .card:hover { transform:translateY(-6px); box-shadow:0 14px 40px rgba(124,92,255,.35); }
+    .thumb { height:140px; display:flex; align-items:center; justify-content:center; font-size:4rem; }
+    .info { padding:16px; }
+    .info h3 { font-size:1.15rem; }
+    .info p { color:var(--mut); font-size:.9rem; margin-top:6px; min-height:2.6em; }
+    .tag { display:inline-block; margin-top:10px; font-size:.75rem; padding:4px 10px; border-radius:999px; background:#262f55; color:var(--acc2); }
+    .empty { text-align:center; color:var(--mut); grid-column:1/-1; padding:40px; }
+    /* Lecteur */
+    #player { position:fixed; inset:0; background:#000; display:none; flex-direction:column; z-index:10; }
+    #player.open { display:flex; }
+    #player .top { display:flex; align-items:center; gap:10px; padding:10px 14px; background:#0e1324; }
+    #player .top b { flex:1; }
+    #player .top button, #player .top a { background:var(--card2); color:var(--txt); border:none; padding:8px 14px; border-radius:10px; cursor:pointer; text-decoration:none; font-size:.9rem; }
+    #player iframe { flex:1; border:0; width:100%; background:#000; }
+    footer { text-align:center; color:var(--mut); font-size:.85rem; padding-bottom:30px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🎮 All My Game</h1>
+    <p>Tous mes jeux web au même endroit — clique et joue.</p>
+  </header>
+
+  <div class="bar">
+    <input id="q" type="search" placeholder="Rechercher un jeu…">
+  </div>
+  <div class="bar" id="cats"></div>
+
+  <main class="grid" id="grid"></main>
+  <footer>Ajoute un jeu : dépose le fichier dans <code>games/</code> et ajoute une ligne dans la liste <code>GAMES</code>.</footer>
+
+  <div id="player">
+    <div class="top">
+      <button id="back">← Retour</button>
+      <b id="ptitle"></b>
+      <button id="fs">⛶ Plein écran</button>
+      <a id="newtab" target="_blank" rel="noopener">↗ Nouvel onglet</a>
+    </div>
+    <iframe id="frame" allow="fullscreen; autoplay; gamepad" allowfullscreen></iframe>
+  </div>
+
+  <script>
+    // ➜ Pour ajouter un jeu, ajoute simplement un objet ici.
+    const GAMES = [
+      { title:"Forest Rally Drift 3D", file:"games/forest-rally-drift.html", emoji:"🏎️", cat:"Course", color:"#1f6f43", desc:"Rallye en forêt, drift et vitesse en 3D." },
+      { title:"Forest Rally — Classic", file:"games/forest-rally-classic.html", emoji:"🚗", cat:"Course", color:"#2d5a27", desc:"La version légère du rallye drift." },
+      { title:"La Chasse des Paysans 3D", file:"games/chasse-paysans-3d.html", emoji:"🌲", cat:"Action", color:"#5a3d1e", desc:"Aventure 3D dans une forêt de France." },
+      { title:"Cellules Infinies", file:"games/cellules-infinies/index.html", emoji:"🧫", cat:"Réflexion", color:"#164a6b", desc:"Jeu interactif de cellules qui se multiplient." },
+      { title:"Aviator Premium", file:"games/aviator.html", emoji:"🛩️", cat:"Casino", color:"#6b1a2a", desc:"Fais décoller l'avion et encaisse à temps (argent fictif)." },
+      { title:"Casino Élite", file:"games/casino-elite.html", emoji:"🎰", cat:"Casino", color:"#5a4a10", desc:"Menu de jeux de casino (argent fictif)." },
+      { title:"Jeu de clic", file:"games/mon-premier-jeu.html", emoji:"👆", cat:"Arcade", color:"#2b4a2b", desc:"Mon tout premier jeu : clique pour marquer des points !" }
+    ];
+
+    const grid = document.getElementById('grid'), q = document.getElementById('q'), cats = document.getElementById('cats');
+    const player = document.getElementById('player'), frame = document.getElementById('frame');
+    let cat = 'Tous';
+
+    ['Tous', ...new Set(GAMES.map(g => g.cat))].forEach(c => {
+      const b = document.createElement('button');
+      b.textContent = c; if (c === cat) b.className = 'on';
+      b.onclick = () => { cat = c; [...cats.children].forEach(x => x.classList.toggle('on', x === b)); render(); };
+      cats.appendChild(b);
+    });
+
+    function render() {
+      const s = q.value.trim().toLowerCase();
+      const list = GAMES.filter(g => (cat === 'Tous' || g.cat === cat) && (g.title + g.desc).toLowerCase().includes(s));
+      grid.innerHTML = list.length ? '' : '<p class="empty">Aucun jeu trouvé 😢</p>';
+      list.forEach(g => {
+ const c = document.createElement('div');
+ c.className = 'card';
+        c.innerHTML = `<div class="thumb" style="background:linear-gradient(135deg,${g.color},#0b0f1a)">${g.emoji}</div>
+          <div class="info"><h3>${g.title}</h3><p>${g.desc}</p><span class="tag">${g.cat}</span></div>`;
+        c.onclick = () => openGame(g);
+ grid.appendChild(c);
+      });
+    }
+
+    function openGame(g) {
+      frame.src = g.file;
+      document.getElementById('ptitle').textContent = g.emoji + ' ' + g.title;
+      document.getElementById('newtab').href = g.file;
+      player.classList.add('open');
+      location.hash = encodeURIComponent(g.file);
+      frame.focus();
+    }
+    function closeGame() { player.classList.remove('open'); frame.src = 'about:blank'; history.replaceState(null, '', location.pathname); }
+
+    document.getElementById('back').onclick = closeGame;
+    document.getElementById('fs').onclick = () => (frame.requestFullscreen || frame.webkitRequestFullscreen).call(frame);
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.fullscreenElement && player.classList.contains('open')) closeGame(); });
+    q.oninput = render;
+    render();
+
+    // Lien direct vers un jeu (ex: #games%2Faviator.html)
+    const h = decodeURIComponent(location.hash.slice(1));
+    const g0 = GAMES.find(g => g.file === h); if (g0) openGame(g0);
+  </script>
+</body>
+</html>
