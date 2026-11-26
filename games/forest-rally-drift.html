@@ -45,6 +45,13 @@
   .opt.on{background:#ff5a2a;border-color:#ffcf3a}
   #qHint{font-size:12px;opacity:.65;max-width:620px}
   #fps{right:24px;top:118px;font-size:13px;font-style:normal;font-weight:600;opacity:.8;display:none}
+  #online{margin-bottom:20px;display:flex;flex-direction:column;align-items:center;gap:8px}
+  #codeIn{width:100px;padding:7px 10px;border-radius:6px;border:2px solid rgba(255,255,255,.25);background:rgba(0,0,0,.35);color:#fff;font-weight:800;font-size:16px;letter-spacing:4px;text-align:center;text-transform:uppercase}
+  #codeIn:focus{outline:none;border-color:#ffcf3a}
+  .opt:disabled,#codeIn:disabled{opacity:.45;cursor:default}
+  #codeBig{display:none;font-size:42px;font-weight:900;font-style:italic;letter-spacing:8px;color:#5ad1ff;text-shadow:3px 3px 0 #0b3a66}
+  #onlineInfo{font-size:13px;opacity:.85;max-width:640px;min-height:18px}
+  #netBox{left:50%;top:14px;transform:translateX(-50%);font-size:16px;background:rgba(0,0,0,.45);padding:6px 16px;border-radius:4px;border-bottom:3px solid #5ad1ff;display:none;font-style:normal;white-space:nowrap}
 </style>
 <script type="importmap">
 { "imports": {
@@ -62,6 +69,15 @@
     <div class="row" id="nRow"><span>Ambiance</span></div>
     <div id="qHint"></div>
   </div>
+  <div id="online">
+    <div class="row"><span>En ligne</span>
+      <button class="opt" id="btnHost">👥 Créer une partie</button>
+      <input id="codeIn" maxlength="4" placeholder="CODE" autocomplete="off" spellcheck="false">
+      <button class="opt" id="btnJoin">Rejoindre</button>
+    </div>
+    <div id="codeBig"></div>
+    <div id="onlineInfo">Joue à 2 en ligne : un joueur crée la partie et donne le code, l'autre le tape et clique sur Rejoindre.</div>
+  </div>
   <div id="cards"></div>
   <div id="loading">Chargement du circuit…</div>
   <div id="loadSub"></div>
@@ -78,6 +94,7 @@
 <div id="speedBox" class="hud"><div id="gear">1</div><div id="speed">0</div><div id="speedUnit">KM/H</div></div>
 <canvas id="minimap" width="190" height="190"></canvas>
 <div id="fps" class="hud"></div>
+<div id="netBox" class="hud"></div>
 <div id="help" class="hud">ESPACE = frein à main · C = caméra · R = reset · M = son · F = FPS · Échap = menu</div>
 
 <script type="module">
@@ -1470,9 +1487,10 @@ function thud(force) {
 // =====================================================================
 const keys = {};
 addEventListener('keydown', e => {
+  if (e.target && e.target.tagName === 'INPUT') { if (e.code === 'Enter' || e.code === 'NumpadEnter') netJoin(); return; }
   keys[e.code] = true;
   if (['Space', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.code)) e.preventDefault();
-  if (state === 'menu' && /^Digit[1-4]$/.test(e.code)) choose(+e.code.slice(5) - 1);
+  if (state === 'menu' && !NET.client && /^Digit[1-4]$/.test(e.code)) choose(+e.code.slice(5) - 1);
   if (!T) return;
   if (e.code === 'KeyR') resetCar(false);
   if (e.code === 'KeyC') camMode = (camMode + 1) % 3;
@@ -1646,6 +1664,7 @@ function gameLogic(dt) {
       else showMsg('TOUR ' + lap + ' : ' + fmt(lapTime), 2);
       lap++; lapTime = 0; nextCp = 1;
       $('best').textContent = fmt(best);
+      if (NET.on && NET.started && lap > LAPS && !NET.finished) netFinish();
     }
     const t = tans[S.idx];
     if (speed > 6 && (Math.sin(S.h) * t.x + Math.cos(S.h) * t.z) < -0.4) wrongTimer += dt; else wrongTimer = 0;
@@ -1653,7 +1672,7 @@ function gameLogic(dt) {
     if (S.dist > ROAD_W / 2 + 22 || (speed < 1.5 && S.thr && !S.air)) stuckTimer += dt; else stuckTimer = 0;
     if (stuckTimer > 3) { resetCar(false); stuckTimer = 0; showMsg('REPLACÉ SUR LA PISTE', 1.2, '#5ad1ff'); }
   }
-  $('lap').textContent = lap;
+  $('lap').textContent = NET.on ? Math.min(lap, LAPS) + ' / ' + LAPS : lap;
   $('time').textContent = fmt(lapTime);
 
   const kmh = speed * 3.6, gears = [0, 35, 65, 95, 125, 200];
@@ -1755,6 +1774,12 @@ function buildMinimap() {
 }
 function drawMinimap() {
   mctx.clearRect(0, 0, 190, 190); mctx.drawImage(mmBg, 0, 0);
+  if (NET.ghost && NET.ghost.visible) { // voiture de l'adversaire (bleue)
+    mctx.save(); mctx.translate(mmX(NET.ghost.position.x), mmY(NET.ghost.position.z)); mctx.rotate(-NET.gh + Math.PI);
+    mctx.fillStyle = '#3a8bff'; mctx.strokeStyle = '#fff'; mctx.lineWidth = 1.5;
+    mctx.beginPath(); mctx.moveTo(0, -8); mctx.lineTo(5, 6); mctx.lineTo(-5, 6); mctx.closePath(); mctx.fill(); mctx.stroke();
+    mctx.restore();
+  }
   mctx.save(); mctx.translate(mmX(S.x), mmY(S.z)); mctx.rotate(-S.h + Math.PI);
   mctx.fillStyle = '#ff5a2a'; mctx.strokeStyle = '#fff'; mctx.lineWidth = 1.5;
   mctx.beginPath(); mctx.moveTo(0, -8); mctx.lineTo(5, 6); mctx.lineTo(-5, 6); mctx.closePath(); mctx.fill(); mctx.stroke();
@@ -1768,7 +1793,7 @@ TRACKS.forEach((t, i) => {
   const b = parseFloat(localStorage.getItem('frd_best_' + t.id)), bn = parseFloat(localStorage.getItem('frd_best_' + t.id + '_nuit'));
   const d = document.createElement('div'); d.className = 'card';
   d.innerHTML = `<div class="sw" style="background:${t.sw}"></div><h3>${t.name}<span class="key">${i + 1}</span></h3><p>${t.desc}</p><p>Record ☀ <b>${b ? fmt(b) : '--'}</b> · ☾ <b>${bn ? fmt(bn) : '--'}</b></p>`;
-  d.onclick = () => choose(i);
+  d.onclick = () => { if (!NET.client) choose(i); };
   $('cards').appendChild(d);
 });
 // boutons qualité / ambiance
@@ -1791,14 +1816,15 @@ drawOpts();
 let choosing = false;
 async function choose(i) {
   if (choosing) return; choosing = true;
+  if (NET.host) { NET.track = i; netTrySetup(); }
   initAudio();
-  $('cards').style.display = 'none'; $('controls').style.display = 'none'; $('opts').style.display = 'none'; $('loading').style.display = 'block';
+  $('cards').style.display = 'none'; $('controls').style.display = 'none'; $('opts').style.display = 'none'; $('online').style.display = 'none'; $('loading').style.display = 'block';
   applyQuality();
   try { await loadHD(TRACKS[i].id, NIGHT); } catch (e) { console.warn('Assets HD ignorés :', e); HD = {}; }
   await new Promise(r => setTimeout(r, 50));
   buildWorld(i);
   $('menu').style.display = 'none';
-  state = 'countdown'; countdown = 3.99;
+  if (NET.on) netLoaded(); else { state = 'countdown'; countdown = 3.99; }
 }
 function buildWorld(i) {
   T = NIGHT ? nightOf(TRACKS[i]) : TRACKS[i];
@@ -1831,6 +1857,249 @@ function buildWorld(i) {
 // =====================================================================
 //  BOUCLE
 // =====================================================================
+// =====================================================================
+//  MULTIJOUEUR EN LIGNE (PeerJS / WebRTC : connexion directe entre les 2 navigateurs)
+//  L'hôte crée une partie -> code à 4 caractères ; l'autre joueur tape le code.
+//  L'hôte choisit le circuit + jour/nuit, les 2 chargent, puis départ synchronisé.
+// =====================================================================
+const LAPS = 3;
+const NET = {
+  on: false, host: false, client: false, joining: false, peer: null, conn: null, code: '', track: -1,
+  setupSent: false, meLoaded: false, otherLoaded: false, started: false, lost: false,
+  ghost: null, gWheels: [], snap: null, gSeen: false, gh: 0, gp: 0, gr: 0,
+  oLap: 1, oProg: -1e9, sendT: 0, raceTime: 0, finished: false, oFinished: false, oTime: 0, boxTxt: ''
+};
+const CODE_ABC = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789', PEER_PREFIX = 'forest-rally-drift-pc1001-';
+const netNum = v => (typeof v === 'number' && isFinite(v)) ? v : 0;
+const netInfo = (txt, color = '#fff') => { const e = $('onlineInfo'); e.textContent = txt; e.style.color = color; };
+const netLock = on => { $('btnHost').disabled = $('btnJoin').disabled = $('codeIn').disabled = on; };
+const netSend = m => { if (NET.conn && NET.conn.open) { try { NET.conn.send(m); } catch (e) { console.warn(e); } } };
+
+function loadPeerJS() {
+  if (window.Peer) return Promise.resolve();
+  return new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js';
+    s.onload = ok; s.onerror = () => ko(new Error('PeerJS non chargé'));
+    document.head.appendChild(s);
+  });
+}
+function netErrText(err) {
+  const t = err && err.type;
+  if (t === 'peer-unavailable') return 'Code introuvable : vérifie le code (ton pote doit avoir créé la partie et rester sur la page).';
+  if (t === 'browser-incompatible') return 'Ton navigateur ne gère pas WebRTC (essaie Chrome, Edge ou Firefox).';
+  if (['network', 'server-error', 'socket-error', 'socket-closed'].includes(t)) return 'Impossible de joindre le serveur de connexion (réseau filtré ?). Réessaie plus tard ou sur un autre réseau.';
+  return 'Erreur de connexion (' + (t || 'inconnue') + ').';
+}
+
+// --- créer une partie (hôte) ---
+async function netHost() {
+  if (NET.on || NET.joining) return;
+  initAudio();
+  NET.joining = true; netLock(true); netInfo('Connexion au serveur…');
+  try { await loadPeerJS(); } catch (e) { NET.joining = false; netLock(false); return netInfo('Impossible de charger PeerJS : vérifie ta connexion internet.', '#ff7a5a'); }
+  const open = n => {
+    const code = Array.from({ length: 4 }, () => CODE_ABC[Math.floor(Math.random() * CODE_ABC.length)]).join('');
+    const peer = new Peer(PEER_PREFIX + code);
+    peer.on('open', () => {
+      if (state !== 'menu') { peer.destroy(); return; } // le joueur a lancé une partie solo entre-temps
+      NET.peer = peer; NET.code = code; NET.on = NET.host = true; NET.joining = false;
+      $('codeBig').textContent = code; $('codeBig').style.display = 'block';
+      netInfo('Donne ce code à ton pote, puis choisis le circuit ci-dessous (il le recevra automatiquement).', '#9fe3ff');
+    });
+    peer.on('connection', c => {
+      if (NET.conn || NET.started) { c.on('open', () => { c.send({ t: 'full' }); setTimeout(() => c.close(), 500); }); return; }
+      netBind(c);
+    });
+    peer.on('error', err => {
+      if (err.type === 'unavailable-id' && n < 5) { peer.destroy(); open(n + 1); return; }
+      console.warn('PeerJS', err);
+      if (!NET.on) { NET.joining = false; peer.destroy(); netLock(false); netInfo(netErrText(err), '#ff7a5a'); }
+    });
+  };
+  open(0);
+}
+
+// --- rejoindre une partie avec un code ---
+async function netJoin() {
+  if (NET.on || NET.joining) return;
+  const code = $('codeIn').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 4) return netInfo('Le code fait 4 caractères (ex. X7K2).', '#ff7a5a');
+  initAudio();
+  NET.joining = true; netLock(true); netInfo('Connexion à la partie ' + code + '…');
+  const fail = txt => {
+    NET.joining = false; NET.conn = null;
+    if (NET.peer) { NET.peer.destroy(); NET.peer = null; }
+    netLock(false); netInfo(txt, '#ff7a5a');
+  };
+  try { await loadPeerJS(); } catch (e) { return fail('Impossible de charger PeerJS : vérifie ta connexion internet.'); }
+  const peer = new Peer(); NET.peer = peer;
+  peer.on('open', () => {
+    netBind(peer.connect(PEER_PREFIX + code, { reliable: true }));
+    setTimeout(() => { if (NET.joining && !NET.on && NET.peer === peer) fail('Pas de réponse de l’hôte : vérifiez le code, ou le réseau bloque la connexion directe (Wi-Fi d’école…).'); }, 15000);
+  });
+  peer.on('error', err => { console.warn('PeerJS', err); if (!NET.on && NET.peer === peer) fail(netErrText(err)); });
+}
+
+function netBind(c) {
+  c.on('open', () => {
+    NET.conn = c; NET.lost = false;
+    if (NET.host) {
+      if (state === 'menu') netInfo('Ton pote est connecté ✔ Choisis le circuit !', '#5aff7a');
+      netTrySetup();
+    } else {
+      NET.on = NET.client = true; NET.joining = false;
+      $('cards').style.display = 'none';
+      netInfo('Connecté ✔ L’hôte choisit le circuit…', '#5aff7a');
+      netSend({ t: 'hello' });
+    }
+  });
+  c.on('data', m => netMsg(c, m));
+  c.on('close', () => netLost(c));
+  c.on('error', e => { console.warn('Connexion', e); netLost(c); });
+}
+
+function netMsg(c, m) {
+  if (c !== NET.conn || !m || typeof m !== 'object') return;
+  switch (m.t) {
+    case 's': // état de la voiture adverse
+      NET.snap = { x: netNum(m.x), y: netNum(m.y), z: netNum(m.z), h: netNum(m.h), p: netNum(m.p), r: netNum(m.r), vx: netNum(m.vx), vz: netNum(m.vz), st: netNum(m.st), v: netNum(m.v), t: performance.now() };
+      NET.oLap = netNum(m.l); NET.oProg = netNum(m.pg);
+      break;
+    case 'setup': // le client reçoit le circuit choisi par l'hôte
+      if (NET.client && NET.track < 0) {
+        const i = Math.max(0, Math.min(TRACKS.length - 1, Math.floor(netNum(m.track))));
+        NET.track = i; NIGHT = !!m.night;
+        netInfo('Circuit : ' + TRACKS[i].name + (NIGHT ? ' (nuit)' : '') + ' · chargement…', '#5aff7a');
+        choose(i);
+      }
+      break;
+    case 'ready': if (NET.host) { NET.otherLoaded = true; netTryGo(); } break;
+    case 'go': if (NET.client && !NET.started) netStart(); break;
+    case 'fin':
+      if (!NET.oFinished) {
+        NET.oFinished = true; NET.oTime = netNum(m.time);
+ if (NET.finished) netResult(); else showMsg('L’ADVERSAIRE A FINI ! ' + fmt(NET.oTime), 2.5, '#ff7a5a');
+      }
+      break;
+    case 'full': netInfo('Cette partie est déjà complète ou a déjà commencé.', '#ff7a5a'); break;
+  }
+}
+
+function netLost(c) {
+  if (c !== NET.conn) return;
+  NET.conn = null; NET.setupSent = false; NET.otherLoaded = false; NET.snap = null; NET.gSeen = false;
+  if (NET.ghost) NET.ghost.visible = false;
+  if (state === 'menu') {
+    if (NET.host) netInfo('Ton pote s’est déconnecté. Il peut revenir avec le même code.', '#ff7a5a');
+    else { // le client revient à l'état de départ
+      NET.on = NET.client = false; NET.track = -1;
+      if (NET.peer) { NET.peer.destroy(); NET.peer = null; }
+      $('cards').style.display = ''; netLock(false); netInfo('Connexion perdue avec l’hôte.', '#ff7a5a');
+    }
+  } else { NET.lost = true; showMsg('ADVERSAIRE DÉCONNECTÉ', 2.5, '#ff7a5a'); }
+}
+
+function netTrySetup() {
+  if (NET.host && NET.conn && NET.track >= 0 && !NET.setupSent) { netSend({ t: 'setup', track: NET.track, night: NIGHT }); NET.setupSent = true; }
+}
+function netLoaded() { // appelé quand le circuit est construit chez moi
+  NET.meLoaded = true; state = 'waiting';
+  buildGhost();
+  if (NET.client) netSend({ t: 'ready' });
+  netTryGo();
+}
+function netTryGo() {
+  if (NET.host && NET.meLoaded && NET.otherLoaded && !NET.started && NET.conn) { netSend({ t: 'go' }); netStart(); }
+}
+function netStart() { NET.started = true; NET.raceTime = 0; state = 'countdown'; countdown = 3.99; lastCd = 4; }
+function netFinish() {
+  NET.finished = true;
+  netSend({ t: 'fin', time: NET.raceTime });
+  if (NET.oFinished) netResult(); else showMsg('🏆 1er ! ' + fmt(NET.raceTime), 3, '#5aff7a');
+}
+function netResult() {
+  const win = NET.raceTime <= NET.oTime;
+  showMsg((win ? '🏆 VICTOIRE ! ' : '2e PLACE · ') + fmt(NET.raceTime), 4, win ? '#5aff7a' : '#ffcf3a');
+}
+function myProg() { // avancement dans la course (pour savoir qui est devant)
+  if (NET.finished) return LAPS * NS + 1e5 - NET.raceTime;
+  return (lap - 1) * NS + (nextCp === 1 && S.idx > NS / 2 ? S.idx - NS : S.idx);
+}
+
+// voiture de l'adversaire : copie de la nôtre, peinte en bleu, sans phares (performances)
+function buildGhost() {
+  if (NET.ghost) return;
+  const g = car.clone(true);
+  for (const w of wheels) {
+    const p = g.children[car.children.indexOf(w.pivot)];
+    if (p) NET.gWheels.push({ pivot: p, spin: p.children[0], front: w.front });
+  }
+  const rm = [];
+  g.traverse(o => { if (o.isLight || (o.isMesh && o.material && o.material.isShaderMaterial)) rm.push(o); });
+  rm.forEach(o => o.parent && o.parent.remove(o));
+  const mats = new Map();
+  g.traverse(o => {
+    if (!o.isMesh || !o.material || !o.material.isMeshPhysicalMaterial) return;
+    if (!mats.has(o.material)) { const m = o.material.clone(); m.map = null; m.color.set(0x2a7bff); mats.set(o.material, m); }
+    o.material = mats.get(o.material);
+  });
+  const c = document.createElement('canvas'); c.width = 256; c.height = 64;
+  const x = c.getContext('2d');
+  x.fillStyle = 'rgba(8,30,70,.75)'; x.fillRect(0, 8, 256, 48);
+  x.fillStyle = '#9fd0ff'; x.font = 'italic 900 34px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('ADVERSAIRE', 128, 33);
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false }));
+  sp.scale.set(3.2, 0.8, 1); sp.position.y = 2.9; g.add(sp);
+  g.visible = false;
+  scene.add(g);
+  NET.ghost = g;
+}
+
+function netUpdate(dt) {
+  if (!NET.on) return;
+  if (state === 'race' && NET.started && !NET.finished) NET.raceTime += dt;
+  // envoi de mon état ~20 fois par seconde
+  NET.sendT -= dt;
+  if (NET.meLoaded && NET.sendT <= 0) {
+    NET.sendT = 0.05;
+    const r2 = v => Math.round(v * 100) / 100, r3 = v => Math.round(v * 1000) / 1000;
+    netSend({ t: 's', x: r2(S.x), y: r2(S.y), z: r2(S.z), h: r3(S.h), p: r3(S.pitch), r: r3(S.roll), vx: r2(S.vx), vz: r2(S.vz), st: r2(S.steer), v: r2(S.vF), l: lap, pg: Math.round(myProg() * 100) / 100 });
+  }
+  // voiture adverse : extrapolation courte + lissage
+  const g = NET.ghost, s = NET.snap;
+  if (g && s && NET.conn) {
+    const k = Math.min(0.25, (performance.now() - s.t) / 1000);
+    const tx = s.x + s.vx * k, tz = s.z + s.vz * k;
+    if (!NET.gSeen || Math.hypot(tx - g.position.x, tz - g.position.z) > 25) {
+      g.position.set(tx, s.y, tz); NET.gh = s.h; NET.gp = s.p; NET.gr = s.r; NET.gSeen = true;
+    }
+    const a = 1 - Math.exp(-dt * 14);
+    g.position.x += (tx - g.position.x) * a; g.position.y += (s.y - g.position.y) * a; g.position.z += (tz - g.position.z) * a;
+    NET.gh += Math.atan2(Math.sin(s.h - NET.gh), Math.cos(s.h - NET.gh)) * a;
+    NET.gp += (s.p - NET.gp) * a; NET.gr += (s.r - NET.gr) * a;
+    g.rotation.set(NET.gp, NET.gh, NET.gr, 'YXZ');
+    for (const w of NET.gWheels) { if (w.front) w.pivot.rotation.y = s.st * 0.5; w.spin.rotation.x += s.v * dt / 0.4; }
+    g.visible = true;
+  }
+  // bandeau d'info en haut de l'écran
+  let txt = '';
+  if (state !== 'menu') {
+    if (NET.lost && !NET.conn) txt = '👥 Adversaire déconnecté · Échap = menu';
+    else if (!NET.started) txt = NET.host ? (NET.conn ? '👥 Ton pote charge le circuit…' : '👥 Code ' + NET.code + ' · en attente de ton pote…') : '👥 En attente du départ…';
+    else {
+      const first = myProg() >= NET.oProg;
+      txt = '👥 ' + (first ? '1er' : '2e') + ' / 2 · Adversaire : tour ' + Math.max(1, Math.min(NET.oLap, LAPS)) + '/' + LAPS + (NET.oFinished ? ' (arrivé)' : '');
+    }
+  }
+  if (txt !== NET.boxTxt) { NET.boxTxt = txt; const b = $('netBox'); b.textContent = txt; b.style.display = txt ? 'block' : 'none'; }
+}
+
+$('btnHost').onclick = netHost;
+$('btnJoin').onclick = netJoin;
+$('codeIn').addEventListener('input', e => { e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 4); });
+addEventListener('beforeunload', () => { if (NET.peer) NET.peer.destroy(); });
+
 const clock = new THREE.Clock();
 let lastCd = 4, elapsed = 0;
 function loop() {
@@ -1852,6 +2121,7 @@ function loop() {
   visuals(dt, info);
   updateCrowd(elapsed);
   updateWeather(dt, elapsed);
+  netUpdate(dt);
   drawMinimap();
   if (msgTimer > 0) { msgTimer -= dt; if (msgTimer <= 0) $('msg').style.opacity = 0; }
   windU.value = elapsed;
